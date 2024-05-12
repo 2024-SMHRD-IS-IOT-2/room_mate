@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:typed_data';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
@@ -13,7 +14,11 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   Uint8List _imageBytes = Uint8List(0); // 이미지를 저장할 변수
-  // String tempImagePath = 'imgs/dog.jpg';
+  // 내가 찍은 좌표
+  Offset? _point;
+  // 집 좌표
+  Offset homePoint = Offset(100.0, 50.0);
+
   @override
   void initState() {
     // TODO: implement initState
@@ -94,51 +99,93 @@ class _HomeState extends State<Home> {
         centerTitle: true,
         backgroundColor: Colors.lightBlue[200],
       ),
-      body: Card(
-        shadowColor: Colors.transparent,
-        margin: const EdgeInsets.all(8.0),
-        child: Center(
-          child: Column(
-            children: [
-              // Mapping된 지도
-              _imageBytes.length != 0
-                  ? GestureDetector(
-                      child: Image.memory(
-                        _imageBytes,
-                        fit: BoxFit.cover,
+      body: Stack(
+        // alignment: ,
+        children: [
+          // Mapping된 지도
+          _imageBytes.length != 0
+              ? Positioned.fill(
+                  child: GestureDetector(
+                    onTapDown: (TapDownDetails details) {
+                      setState(() {
+                        // 터치된 위치를 화면의 좌표로 변환하여 바뀜
+                        RenderBox referenceBox =
+                            context.findRenderObject() as RenderBox;
+                        _point =
+                            referenceBox.globalToLocal(details.globalPosition);
+                        _point = Offset(_point!.dx, _point!.dy - 57.1);
+                      });
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                          image: DecorationImage(
+                              image: MemoryImage(_imageBytes),
+                              fit: BoxFit.fill)),
+                      child: CustomPaint(
+                        painter: TouchPainter(point: _point),
+                        size: Size.infinite,
                       ),
-                    )
-                  : CircularProgressIndicator(), // 이미지 로딩 중에는 로딩 스피너를 표시,
-              // Icon(
-              //   Icons.map_outlined,
-              //   size: 300,
-              // ),
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: moving ? cancelsendDestination : sendDestination,
-                child: Text(moving ? "이동 취소" : "지정 위치로 이동"),
-              ),
-              moving
-                  ? Text(
-                      '이동중~',
-                      style: TextStyle(color: Colors.grey),
-                    )
-                  : ElevatedButton(
-                      // ***********************나중에 "이동중"이 아니라, "집으로 돌아가는 중~" 이라는 텍스트로 만들기!!***********************
-                      // ***********************sendDestination이 아닌 "집으로 돌아가는 함수" 만들기***********************
-                      onPressed: () {},
-                      child: Text('집으로 돌아가기'),
                     ),
-              ElevatedButton(
-                  onPressed: () => getFromFlask(),
-                  child: Text('Flask에서 데이터 받기!')),
-              ElevatedButton(
-                  onPressed: () => sendToFlask(),
-                  child: Text('Flask에게 데이터 보내기!!'))
-            ],
-          ),
-        ),
+                  ),
+                )
+              : CircularProgressIndicator(), // 이미지 로딩 중에는 로딩 스피너를 표시,
+
+          // 각종 버튼들
+          Positioned(
+            bottom: 20,
+            left: 100,
+            child: Column(
+              children: [
+                ElevatedButton(
+                  onPressed: moving ? cancelsendDestination : sendDestination,
+                  child: Text(moving ? "이동 취소" : "지정 위치로 이동"),
+                ),
+                moving
+                    ? Text(
+                        '이동중~',
+                        style: TextStyle(color: Colors.grey),
+                      )
+                    : ElevatedButton(
+                        // ***********************나중에 "이동중"이 아니라, "집으로 돌아가는 중~" 이라는 텍스트로 만들기!!***********************
+                        // ***********************sendDestination이 아닌 "집으로 돌아가는 함수" 만들기***********************
+                        onPressed: () {},
+                        child: Text('집으로 돌아가기'),
+                      ),
+                ElevatedButton(
+                    onPressed: () => getFromFlask(),
+                    child: Text('Flask에서 데이터 받기!')),
+                ElevatedButton(
+                    onPressed: () => sendToFlask(),
+                    child: Text('Flask에게 데이터 보내기!!'))
+              ],
+            ),
+          )
+        ],
       ),
     );
+  }
+}
+
+class TouchPainter extends CustomPainter {
+  final Offset? point;
+
+  TouchPainter({this.point});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Paint paint = Paint()
+      ..color = Colors.red
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = 5.0;
+
+    if (point != null) {
+      canvas.drawPoints(PointMode.points, [point!], paint);
+      print(point);
+    }
+  }
+
+  @override
+  bool shouldRepaint(TouchPainter oldDelegate) {
+    return oldDelegate.point != point;
   }
 }
