@@ -18,6 +18,7 @@ class _HomeState extends State<Home> {
   Offset? _point;
   // 집 좌표
   Offset homePoint = Offset(100.0, 50.0);
+  bool buttonState = false;
 
   @override
   void initState() {
@@ -37,9 +38,11 @@ class _HomeState extends State<Home> {
   Future<void> getImage() async {
     try {
       // Dio를 사용하여 이미지를 가져옴
+      print("dddddddd");
       Response response = await dio.get(
           'http://121.147.52.9:8016/to_flutter_map_data',
           options: Options(responseType: ResponseType.bytes));
+      print('ffffffffff');
 
       // 가져온 이미지를 화면에 표시
       setState(() {
@@ -55,41 +58,47 @@ class _HomeState extends State<Home> {
   bool moving = false; // 위치이동 버튼 클릭/비클릭 여부에 따라 버튼 바뀌도록 하는 boolean
 
   // flask로 목적지 좌표 보내는 코드 작성
-  void sendDestination() {
+  void sendDestination() async {
+    try {
+      final response = await dio.post('http://121.147.52.9:8016/destination',
+          data: {'x좌표': _point!.dx.toInt(), 'y좌표': _point!.dy.toInt()});
+      print("대답!!" + response.data.toString());
+      setState(() {
+        moving = true;
+      });
+    } catch (e) {
+      print('No destination');
+    }
+  }
+
+  // 집을 가는 코드 작성
+  goToHome() async {
+    _point = Offset(190, 550);
+    print(_point);
+    try {
+      final response = await dio.post('http://121.147.52.9:8016/goToHome',
+          data: {'x좌표': _point!.dx.toInt(), 'y좌표': _point!.dy.toInt()});
+      print(response.data.toString());
+    } catch (e) {
+      print("I can't go to home bb" + e.toString());
+    }
     setState(() {
-      // await dio.post('http://121.147.52.9:8016/destination',
-      //     queryParameters: {'x': 12, 'y': 10});
       moving = true;
     });
   }
 
   // 이동 중 멈추고 싶을 때 누르면 멈추는 코드 작성
   void cancelsendDestination() {
+    _point = null;
+    final response = dio
+        .post('http://121.147.52.9:8016/stop', data: {'stop_signal': 'stop'});
     setState(() {
       moving = false;
+      buttonState = false;
     });
   }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // flask에서 데이터 받기
-  void getFromFlask() async {
-    try {
-      final response = await dio.post('http://121.147.52.9:8016/send_data'
-          // queryParameters: {'hong': 'cheol'}
-          );
-      print(response.data);
-    } catch (e) {
-      print('catch: $e');
-    }
-    print("hihi");
-  }
-
-  // flask에게 데이터 보내기
-  void sendToFlask() async {
-    final response = await dio.post('http://172.30.1.47:5000/id',
-        queryParameters: {'id': 123, 'name': 'dio'}); // key에 value 담아서 보내기
-    print(response.data);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -105,58 +114,85 @@ class _HomeState extends State<Home> {
           // Mapping된 지도
           _imageBytes.length != 0
               ? Positioned.fill(
-                  child: GestureDetector(
-                    onTapDown: (TapDownDetails details) {
-                      setState(() {
-                        // 터치된 위치를 화면의 좌표로 변환하여 바뀜
-                        RenderBox referenceBox =
-                            context.findRenderObject() as RenderBox;
-                        _point =
-                            referenceBox.globalToLocal(details.globalPosition);
-                        _point = Offset(_point!.dx, _point!.dy - 57.1);
-                      });
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                          image: DecorationImage(
-                              image: MemoryImage(_imageBytes),
-                              fit: BoxFit.fill)),
-                      child: CustomPaint(
-                        painter: TouchPainter(point: _point),
-                        size: Size.infinite,
-                      ),
-                    ),
-                  ),
+                  child: moving
+                      ? Container(
+                          decoration: BoxDecoration(
+                              image: DecorationImage(
+                                  image: MemoryImage(_imageBytes),
+                                  fit: BoxFit.fill)),
+                          child: CustomPaint(
+                            painter: TouchPainter(point: _point, dio: dio),
+                            size: Size.infinite,
+                          ),
+                        )
+                      : GestureDetector(
+                          onTapDown: (TapDownDetails details) {
+                            setState(() {
+                              // 터치된 위치를 화면의 좌표로 변환하여 바뀜
+                              RenderBox referenceBox =
+                                  context.findRenderObject() as RenderBox;
+                              _point = referenceBox
+                                  .globalToLocal(details.globalPosition);
+                              _point = Offset(_point!.dx, _point!.dy - 120);
+                              buttonState = true;
+                            });
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                                image: DecorationImage(
+                                    image: MemoryImage(_imageBytes),
+                                    fit: BoxFit.fill)),
+                            child: CustomPaint(
+                              painter: TouchPainter(point: _point, dio: dio),
+                              size: Size.infinite,
+                            ),
+                          ),
+                        ),
                 )
               : CircularProgressIndicator(), // 이미지 로딩 중에는 로딩 스피너를 표시,
 
           // 각종 버튼들
           Positioned(
             bottom: 20,
-            left: 100,
+            // left: 0,
+            right: 10,
             child: Column(
               children: [
-                ElevatedButton(
-                  onPressed: moving ? cancelsendDestination : sendDestination,
-                  child: Text(moving ? "이동 취소" : "지정 위치로 이동"),
+                Visibility(
+                  visible: buttonState,
+                  child: ElevatedButton(
+                      style: ButtonStyle(
+                          fixedSize: MaterialStateProperty.all(Size(70, 40))),
+                      onPressed:
+                          moving ? cancelsendDestination : sendDestination,
+                      // ***** 집에 도착하면 X버튼 사라지게 하기 *****
+                      child: moving
+                          ? Icon(Icons.cancel)
+                          : Image.asset(
+                              'imgs/target.png',
+                              height: 30,
+                              width: 30,
+                            )
+                      // Text(moving ? "이동 취소" : "지정 위치로 이동"),
+                      ),
                 ),
                 moving
                     ? Text(
                         '이동중~',
-                        style: TextStyle(color: Colors.grey),
+                        style: TextStyle(color: Colors.white),
                       )
                     : ElevatedButton(
-                        // ***********************나중에 "이동중"이 아니라, "집으로 돌아가는 중~" 이라는 텍스트로 만들기!!***********************
-                        // ***********************sendDestination이 아닌 "집으로 돌아가는 함수" 만들기***********************
-                        onPressed: () {},
-                        child: Text('집으로 돌아가기'),
+                        style: ButtonStyle(
+                            fixedSize: MaterialStateProperty.all(Size(70, 40))),
+                        onPressed: () {
+                          goToHome();
+                          setState(() {
+                            print("포인트!!" + _point!.dx.toInt().toString());
+                            _point = null; // 버튼을 누를 때 좌표 초기화
+                          });
+                        },
+                        child: Icon(Icons.home),
                       ),
-                ElevatedButton(
-                    onPressed: () => getFromFlask(),
-                    child: Text('Flask에서 데이터 받기!')),
-                ElevatedButton(
-                    onPressed: () => sendToFlask(),
-                    child: Text('Flask에게 데이터 보내기!!'))
               ],
             ),
           )
@@ -168,21 +204,30 @@ class _HomeState extends State<Home> {
 
 class TouchPainter extends CustomPainter {
   final Offset? point;
+  late Dio dio;
 
-  TouchPainter({this.point});
+  TouchPainter({this.point, required this.dio});
 
   @override
   void paint(Canvas canvas, Size size) {
     final Paint paint = Paint()
-      ..color = Colors.red
+      ..color = Colors.green
       ..strokeCap = StrokeCap.round
-      ..strokeWidth = 5.0;
+      ..strokeWidth = 15.0;
 
     if (point != null) {
       canvas.drawPoints(PointMode.points, [point!], paint);
-      print(point);
+      print(point!.dx.toInt().toString() + "," + point!.dy.toInt().toString());
+      // sendDestinationToFlask();
     }
   }
+
+  // sendDestinationToFlask() async {
+  //   print('aaaaaaaaaaaaa');
+  //   final response = await dio.post('http://121.147.52.9:8016/destination',
+  //       data: {'x좌표': point!.dx.toInt(), 'y좌표': point!.dy.toInt()});
+  //   print("대답!!" + response.data.toString());
+  // }
 
   @override
   bool shouldRepaint(TouchPainter oldDelegate) {
