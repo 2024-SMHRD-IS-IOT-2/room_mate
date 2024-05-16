@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:room_mate/view/gallery.dart';
 import 'package:room_mate/view/map.dart';
 
 /// Flutter code sample for [NavigationBar].
 
-class NavigationExample extends StatefulWidget {
-  const NavigationExample({super.key});
+class BottomNavigation extends StatefulWidget {
+  const BottomNavigation({super.key});
 
   @override
-  State<NavigationExample> createState() => _NavigationExampleState();
+  State<BottomNavigation> createState() => _BottomNavigationState();
 }
 
-class _NavigationExampleState extends State<NavigationExample> {
+class _BottomNavigationState extends State<BottomNavigation> {
   int currentPageIndex = 0;
   bool moving = false;
 

@@ -4,6 +4,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 class Home extends StatefulWidget {
   const Home({Key? key}) : super(key: key);
@@ -24,6 +25,7 @@ class _HomeState extends State<Home> {
   void initState() {
     // TODO: implement initState
     super.initState();
+    // initialization();
     getImage();
 
     // robot에서 지도데이터 받음
@@ -33,6 +35,21 @@ class _HomeState extends State<Home> {
     // Timer.periodic(const Duration(seconds: 1), (timer) async {
     //   await dio.post('http://121.147.52.9:8016/to_flutter_robot_location');
     // });
+  }
+
+  void initialization() async {
+    // This is where you can initialize the resources needed by your app while
+    // the splash screen is displayed.  Remove the following example because
+    // delaying the user experience is a bad design practice!
+    // ignore_for_file: avoid_print
+    print('ready in 3...');
+    await Future.delayed(const Duration(seconds: 1));
+    print('ready in 2...');
+    await Future.delayed(const Duration(seconds: 1));
+    print('ready in 1...');
+    await Future.delayed(const Duration(seconds: 1));
+    print('go!');
+    FlutterNativeSplash.remove();
   }
 
   Future<void> getImage() async {
@@ -79,12 +96,13 @@ class _HomeState extends State<Home> {
       final response = await dio.post('http://121.147.52.9:8016/goToHome',
           data: {'x좌표': _point!.dx.toInt(), 'y좌표': _point!.dy.toInt()});
       print(response.data.toString());
+      setState(() {
+        moving = true;
+        buttonState = true;
+      });
     } catch (e) {
       print("I can't go to home bb" + e.toString());
     }
-    setState(() {
-      moving = true;
-    });
   }
 
   // 이동 중 멈추고 싶을 때 누르면 멈추는 코드 작성
@@ -103,10 +121,22 @@ class _HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Map Page"),
-        centerTitle: true,
-        backgroundColor: Colors.lightBlue[200],
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(50.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AppBar(
+              toolbarHeight: 50,
+              title: Text(
+                "Map",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 35),
+              ),
+              centerTitle: true,
+              backgroundColor: Colors.lightBlue[300],
+            ),
+          ],
+        ),
       ),
       body: Stack(
         // alignment: ,
@@ -133,7 +163,7 @@ class _HomeState extends State<Home> {
                                   context.findRenderObject() as RenderBox;
                               _point = referenceBox
                                   .globalToLocal(details.globalPosition);
-                              _point = Offset(_point!.dx, _point!.dy - 120);
+                              _point = Offset(_point!.dx, _point!.dy - 140);
                               buttonState = true;
                             });
                           },
@@ -167,7 +197,10 @@ class _HomeState extends State<Home> {
                           moving ? cancelsendDestination : sendDestination,
                       // ***** 집에 도착하면 X버튼 사라지게 하기 *****
                       child: moving
-                          ? Icon(Icons.cancel)
+                          ? Icon(
+                              Icons.cancel,
+                              color: Colors.lightBlue[500],
+                            )
                           : Image.asset(
                               'imgs/target.png',
                               height: 30,
@@ -191,7 +224,10 @@ class _HomeState extends State<Home> {
                             _point = null; // 버튼을 누를 때 좌표 초기화
                           });
                         },
-                        child: Icon(Icons.home),
+                        child: Icon(
+                          Icons.home,
+                          color: Colors.lightBlue[500],
+                        ),
                       ),
               ],
             ),
