@@ -1,7 +1,7 @@
-import 'dart:math';
-
 import 'package:dio/dio.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 class Gallery extends StatefulWidget {
   const Gallery({super.key});
@@ -11,6 +11,7 @@ class Gallery extends StatefulWidget {
 }
 
 class _GalleryState extends State<Gallery> {
+  final dio = Dio();
   late Future<List<String>> _imageUrls;
   List selected = []; // boolean List : 선택 됐는지 안됐는지 확인
   Set selectedList = {}; // 선택된 사진들 담는 set
@@ -29,6 +30,29 @@ class _GalleryState extends State<Gallery> {
       selected = List.filled(length, false);
       print(selected);
     });
+  }
+
+  Future<List<String>> getImageUrls() async {
+    try {
+      final response = await Dio().get('http://121.147.52.9:8016/get_photos');
+      if (response.statusCode == 200) {
+        final imageUrls = List<String>.from(response.data);
+        print("사진들: " + imageUrls.toString());
+        return imageUrls;
+      } else {
+        throw Exception('Failed to fetch image URLs');
+      }
+    } catch (e) {
+      throw Exception('Failed to fetch image URLs: $e');
+    }
+  }
+
+  // 삭제버튼 눌렀을 때 삭제할 사진 set를 flask로 보내기
+  deletePhotos() async {
+    final response = await dio.post('http://121.147.52.9:8016/delete_photos',
+        data: {'photos': selectedList.toList()});
+
+    // print(response.data['message']);
   }
 
   @override
@@ -51,86 +75,105 @@ class _GalleryState extends State<Gallery> {
           ],
         ),
       ),
-      body: Column(
+      body: Stack(
         children: [
-          Expanded(
-            child: FutureBuilder<List<String>>(
-              future: _imageUrls,
-              builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  return GridView.builder(
-                    // shrinkWrap: true,
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 8.0,
-                      mainAxisSpacing: 8.0,
-                    ),
-                    itemCount: snapshot.data!.length,
-                    itemBuilder: (context, index) {
-                      return GestureDetector(
-                        onTap: () {
-                          selected[index] = !selected[index];
-                          if (selected[index]) {
-                            selectedList.add(snapshot.data![index]);
-                          } else {
-                            selectedList.remove(snapshot.data![index]);
-                          }
+          FutureBuilder<List<String>>(
+            future: _imageUrls,
+            builder: (context, snapshot) {
+              if (snapshot.hasData) {
+                return GridView.builder(
+                  // shrinkWrap: true,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 8.0,
+                    mainAxisSpacing: 8.0,
+                  ),
+                  itemCount: snapshot.data!.length,
+                  itemBuilder: (context, index) {
+                    return GestureDetector(
+                      onTap: () {
+                        selected[index] = !selected[index];
+                        if (selected[index]) {
+                          selectedList.add(snapshot.data![index]);
+                        } else {
+                          selectedList.remove(snapshot.data![index]);
+                        }
 
-                          if (selectedList.length != 0) {
-                            visibleButton = true;
-                          } else {
-                            visibleButton = false;
-                          }
-                          print(selected);
-                          print("리스트들!!" + selectedList.toString());
-                          setState(() {});
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.all(4.0),
-                          child: Image.network(
-                            snapshot.data![index],
-                            fit: BoxFit.cover,
+                        if (selectedList.length != 0) {
+                          visibleButton = true;
+                        } else {
+                          visibleButton = false;
+                        }
+                        print(selected);
+                        print("리스트들!!" + selectedList.toString());
+                        setState(() {});
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: Stack(children: [
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            child: Image.network(
+                              snapshot.data![index],
+                              fit: BoxFit.cover,
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  );
-                } else if (snapshot.hasError) {
-                  return Center(
-                    child: Text('Error: ${snapshot.error}'),
-                  );
-                } else {
-                  return Center(
-                    child: CircularProgressIndicator(),
-                  );
-                }
-              },
-            ),
+                          selected[index]
+                              ? Positioned(
+                                  right: 10,
+                                  child: Icon(
+                                    Icons.check_circle,
+                                    color: Colors.lightBlue,
+                                  ),
+                                )
+                              : Positioned(
+                                  right: 10,
+                                  child: Icon(
+                                    Icons.circle,
+                                    color: Colors.grey[200],
+                                  ),
+                                )
+                        ]),
+                      ),
+                    );
+                  },
+                );
+              } else if (snapshot.hasError) {
+                return Center(
+                  child: Text('Error: ${snapshot.error}'),
+                );
+              } else {
+                return Center(
+                  child: CircularProgressIndicator(),
+                );
+              }
+            },
           ),
-          Visibility(
-            visible: visibleButton,
-            child: ElevatedButton(
-              onPressed: () {},
-              child: Text('선택 사진 삭제'),
+          Positioned(
+            bottom: 10,
+            left: 0,
+            right: 0,
+            child: Visibility(
+              visible: visibleButton,
+              child: ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    deletePhotos();
+                    visibleButton = false;
+                  });
+                },
+                child: Text(
+                  '선택 사진 삭제',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.lightBlue[800]),
+                ),
+              ),
             ),
           ),
         ],
       ),
     );
-  }
-}
-
-Future<List<String>> getImageUrls() async {
-  try {
-    final response = await Dio().get('http://121.147.52.9:8016/get_photos');
-    if (response.statusCode == 200) {
-      final imageUrls = List<String>.from(response.data);
-      print("사진들: " + imageUrls.toString());
-      return imageUrls;
-    } else {
-      throw Exception('Failed to fetch image URLs');
-    }
-  } catch (e) {
-    throw Exception('Failed to fetch image URLs: $e');
   }
 }

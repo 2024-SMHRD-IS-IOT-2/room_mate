@@ -14,11 +14,11 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
+  final dio = Dio();
+  bool moving = false; // 위치이동 버튼 클릭/비클릭 여부에 따라 버튼 바뀌도록 하는 boolean
   Uint8List _imageBytes = Uint8List(0); // 이미지를 저장할 변수
-  // 내가 찍은 좌표
-  Offset? _point;
-  // 집 좌표
-  Offset homePoint = Offset(100.0, 50.0);
+  Offset? _point; // 내가 찍은 좌표
+  Offset homePoint = Offset(100.0, 50.0); // 집 좌표
   bool buttonState = false;
 
   @override
@@ -71,14 +71,15 @@ class _HomeState extends State<Home> {
     }
   }
 
-  final dio = Dio();
-  bool moving = false; // 위치이동 버튼 클릭/비클릭 여부에 따라 버튼 바뀌도록 하는 boolean
-
   // flask로 목적지 좌표 보내는 코드 작성
   void sendDestination() async {
     try {
       final response = await dio.post('http://121.147.52.9:8016/destination',
-          data: {'x좌표': _point!.dx.toInt(), 'y좌표': _point!.dy.toInt()});
+          data: {
+            'signal': true,
+            'x': _point!.dx.toInt(),
+            'y': _point!.dy.toInt()
+          });
       print("대답!!" + response.data.toString());
       setState(() {
         moving = true;
@@ -93,7 +94,7 @@ class _HomeState extends State<Home> {
     _point = Offset(190, 550);
     print(_point);
     try {
-      final response = await dio.post('http://121.147.52.9:8016/goToHome',
+      final response = await dio.post('http://121.147.52.9:8016/go_to_home',
           data: {'x좌표': _point!.dx.toInt(), 'y좌표': _point!.dy.toInt()});
       print(response.data.toString());
       setState(() {
@@ -163,7 +164,7 @@ class _HomeState extends State<Home> {
                                   context.findRenderObject() as RenderBox;
                               _point = referenceBox
                                   .globalToLocal(details.globalPosition);
-                              _point = Offset(_point!.dx, _point!.dy - 140);
+                              _point = Offset(_point!.dx, _point!.dy - 115);
                               buttonState = true;
                             });
                           },
