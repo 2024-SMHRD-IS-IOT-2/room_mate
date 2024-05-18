@@ -17,9 +17,9 @@ class _HomeState extends State<Home> {
   final dio = Dio();
   bool moving = false; // 위치이동 버튼 클릭/비클릭 여부에 따라 버튼 바뀌도록 하는 boolean
   Uint8List _imageBytes = Uint8List(0); // 이미지를 저장할 변수
-  Offset? _point; // 내가 찍은 좌표
-  Offset homePoint = Offset(100.0, 50.0); // 집 좌표
-  bool buttonState = false;
+  Offset? _destitionPoint; // 내가 찍은 좌표
+  Offset homedestitionPoint = Offset(100.0, 50.0); // 집 좌표
+  bool buttonState = false; // true일 때 cancel icon과 이동중~ text가 나옴
 
   @override
   void initState() {
@@ -55,62 +55,66 @@ class _HomeState extends State<Home> {
   Future<void> getImage() async {
     try {
       // Dio를 사용하여 이미지를 가져옴
-      print("dddddddd");
+      print("이미지 가져오기 전");
       Response response = await dio.get(
           'http://121.147.52.9:8016/to_flutter_map_data',
           options: Options(responseType: ResponseType.bytes));
-      print('ffffffffff');
+      print('이미지 가져오기 성공!');
 
       // 가져온 이미지를 화면에 표시
       setState(() {
         _imageBytes = response.data;
-        print('***hihi***' + _imageBytes.toString());
+        print('지도 이미지 : ' + _imageBytes.toString());
       });
     } catch (e) {
-      print('Failed to load image: $e');
+      print('지도 이미지 불러오기 실패 : $e');
     }
   }
 
   // flask로 목적지 좌표 보내는 코드 작성
   void sendDestination() async {
     try {
-      final response = await dio.post('http://121.147.52.9:8016/destination',
-          data: {
-            'signal': true,
-            'x': _point!.dx.toInt(),
-            'y': _point!.dy.toInt()
-          });
-      print("대답!!" + response.data.toString());
+      final response =
+          await dio.post('http://121.147.52.9:8016/destination', data: {
+        'signal': true,
+        'x': _destitionPoint!.dx.toInt(),
+        'y': _destitionPoint!.dy.toInt()
+      });
+      print("좌표값 보냄!!" + response.data.toString());
       setState(() {
         moving = true;
       });
     } catch (e) {
-      print('No destination');
+      print('좌표값 보내기 실패 ㅠㅠ');
     }
   }
 
   // 집을 가는 코드 작성
   goToHome() async {
-    _point = Offset(190, 550);
-    print(_point);
+    _destitionPoint = Offset(190, 550);
+    print(_destitionPoint);
     try {
-      final response = await dio.post('http://121.147.52.9:8016/go_to_home',
-          data: {'x좌표': _point!.dx.toInt(), 'y좌표': _point!.dy.toInt()});
+      final response =
+          await dio.post('http://121.147.52.9:8016/go_to_home', data: {
+        'signal': true,
+        'x': _destitionPoint!.dx.toInt(),
+        'y': _destitionPoint!.dy.toInt()
+      });
       print(response.data.toString());
       setState(() {
-        moving = true;
+        moving = true; // 이동중임을 표시
         buttonState = true;
+        _destitionPoint = null; // 버튼을 누를 때 좌표 초기화
       });
     } catch (e) {
-      print("I can't go to home bb" + e.toString());
+      print("집 좌표 보내기 실패 : " + e.toString());
     }
   }
 
   // 이동 중 멈추고 싶을 때 누르면 멈추는 코드 작성
   void cancelsendDestination() {
-    _point = null;
-    final response = dio
-        .post('http://121.147.52.9:8016/stop', data: {'stop_signal': 'stop'});
+    _destitionPoint = null;
+    dio.post('http://121.147.52.9:8016/stop', data: {'stop_signal': 'stop'});
     setState(() {
       moving = false;
       buttonState = false;
@@ -152,7 +156,8 @@ class _HomeState extends State<Home> {
                                   image: MemoryImage(_imageBytes),
                                   fit: BoxFit.fill)),
                           child: CustomPaint(
-                            painter: TouchPainter(point: _point, dio: dio),
+                            painter: TouchPainter(
+                                destitionPoint: _destitionPoint, dio: dio),
                             size: Size.infinite,
                           ),
                         )
@@ -162,9 +167,10 @@ class _HomeState extends State<Home> {
                               // 터치된 위치를 화면의 좌표로 변환하여 바뀜
                               RenderBox referenceBox =
                                   context.findRenderObject() as RenderBox;
-                              _point = referenceBox
+                              _destitionPoint = referenceBox
                                   .globalToLocal(details.globalPosition);
-                              _point = Offset(_point!.dx, _point!.dy - 115);
+                              _destitionPoint = Offset(_destitionPoint!.dx,
+                                  _destitionPoint!.dy - 115);
                               buttonState = true;
                             });
                           },
@@ -174,7 +180,8 @@ class _HomeState extends State<Home> {
                                     image: MemoryImage(_imageBytes),
                                     fit: BoxFit.fill)),
                             child: CustomPaint(
-                              painter: TouchPainter(point: _point, dio: dio),
+                              painter: TouchPainter(
+                                  destitionPoint: _destitionPoint, dio: dio),
                               size: Size.infinite,
                             ),
                           ),
@@ -213,18 +220,13 @@ class _HomeState extends State<Home> {
                 moving
                     ? Text(
                         '이동중~',
-                        style: TextStyle(color: Colors.white),
+                        style: TextStyle(
+                            color: Colors.blue, fontWeight: FontWeight.bold),
                       )
                     : ElevatedButton(
                         style: ButtonStyle(
                             fixedSize: MaterialStateProperty.all(Size(70, 40))),
-                        onPressed: () {
-                          goToHome();
-                          setState(() {
-                            print("포인트!!" + _point!.dx.toInt().toString());
-                            _point = null; // 버튼을 누를 때 좌표 초기화
-                          });
-                        },
+                        onPressed: () => goToHome(),
                         child: Icon(
                           Icons.home,
                           color: Colors.lightBlue[500],
@@ -240,10 +242,10 @@ class _HomeState extends State<Home> {
 }
 
 class TouchPainter extends CustomPainter {
-  final Offset? point;
+  final Offset? destitionPoint;
   late Dio dio;
 
-  TouchPainter({this.point, required this.dio});
+  TouchPainter({this.destitionPoint, required this.dio});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -252,22 +254,16 @@ class TouchPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..strokeWidth = 15.0;
 
-    if (point != null) {
-      canvas.drawPoints(PointMode.points, [point!], paint);
-      print(point!.dx.toInt().toString() + "," + point!.dy.toInt().toString());
-      // sendDestinationToFlask();
+    if (destitionPoint != null) {
+      canvas.drawPoints(PointMode.points, [destitionPoint!], paint);
+      print(destitionPoint!.dx.toInt().toString() +
+          "," +
+          destitionPoint!.dy.toInt().toString());
     }
   }
 
-  // sendDestinationToFlask() async {
-  //   print('aaaaaaaaaaaaa');
-  //   final response = await dio.post('http://121.147.52.9:8016/destination',
-  //       data: {'x좌표': point!.dx.toInt(), 'y좌표': point!.dy.toInt()});
-  //   print("대답!!" + response.data.toString());
-  // }
-
   @override
   bool shouldRepaint(TouchPainter oldDelegate) {
-    return oldDelegate.point != point;
+    return oldDelegate.destitionPoint != destitionPoint;
   }
 }
