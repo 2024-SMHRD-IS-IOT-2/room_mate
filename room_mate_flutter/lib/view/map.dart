@@ -17,8 +17,9 @@ class _HomeState extends State<Home> {
   final dio = Dio();
   bool moving = false; // 위치이동 버튼 클릭/비클릭 여부에 따라 버튼 바뀌도록 하는 boolean
   Uint8List _imageBytes = Uint8List(0); // 이미지를 저장할 변수
-  Offset? _destitionPoint; // 내가 찍은 좌표
-  Offset homedestitionPoint = Offset(100.0, 50.0); // 집 좌표
+  Offset? _destination; // 내가 찍은 좌표
+  Offset? _robotCurrentLocation; // 로봇 실시간 위치
+  Offset homedestination = Offset(100.0, 50.0); // 집 좌표
   bool buttonState = false; // true일 때 cancel icon과 이동중~ text가 나옴
 
   @override
@@ -27,6 +28,9 @@ class _HomeState extends State<Home> {
     super.initState();
     // initialization();
     getImage();
+    Timer.periodic(Duration(milliseconds: 500), (timer) {
+      fetchCoordinate();
+    });
 
     // robot에서 지도데이터 받음
     // await dio.post('http://121.147.52.9:8016/to_flutter_map_data');
@@ -74,12 +78,12 @@ class _HomeState extends State<Home> {
   // flask로 목적지 좌표 보내는 코드 작성
   void sendDestination() async {
     try {
-      final response =
-          await dio.post('http://121.147.52.9:8016/destination', data: {
-        'signal': true,
-        'x': _destitionPoint!.dx.toInt(),
-        'y': _destitionPoint!.dy.toInt()
-      });
+      final response = await dio.post('http://121.147.52.9:8016/destination',
+          data: {
+            'signal': true,
+            'x': _destination!.dx.toInt(),
+            'y': _destination!.dy.toInt()
+          });
       print("좌표값 보냄!!" + response.data.toString());
       setState(() {
         moving = true;
@@ -90,21 +94,21 @@ class _HomeState extends State<Home> {
   }
 
   // 집을 가는 코드 작성
-  goToHome() async {
-    _destitionPoint = Offset(190, 550);
-    print(_destitionPoint);
+  void goToHome() async {
+    _destination = Offset(190, 550);
+    print(_destination);
     try {
-      final response =
-          await dio.post('http://121.147.52.9:8016/go_to_home', data: {
-        'signal': true,
-        'x': _destitionPoint!.dx.toInt(),
-        'y': _destitionPoint!.dy.toInt()
-      });
+      final response = await dio.post('http://121.147.52.9:8016/go_to_home',
+          data: {
+            'signal': true,
+            'x': _destination!.dx.toInt(),
+            'y': _destination!.dy.toInt()
+          });
       print(response.data.toString());
       setState(() {
         moving = true; // 이동중임을 표시
         buttonState = true;
-        _destitionPoint = null; // 버튼을 누를 때 좌표 초기화
+        _destination = null; // 버튼을 누를 때 좌표 초기화
       });
     } catch (e) {
       print("집 좌표 보내기 실패 : " + e.toString());
@@ -113,12 +117,27 @@ class _HomeState extends State<Home> {
 
   // 이동 중 멈추고 싶을 때 누르면 멈추는 코드 작성
   void cancelsendDestination() {
-    _destitionPoint = null;
+    _destination = null;
     dio.post('http://121.147.52.9:8016/stop', data: {'stop_signal': 'stop'});
     setState(() {
       moving = false;
       buttonState = false;
     });
+  }
+
+  Future<void> fetchCoordinate() async {
+    try {
+      // Dio를 사용하여 서버에서 좌표를 가져옵니다. 서버 URL은 적절하게 변경해야 합니다.
+      var response =
+          await dio.post('http://121.147.52.9:8016/to_flutter_robot_location');
+      setState(() {
+        // 서버 응답에서 좌표를 파싱하여 currentLocation을 업데이트합니다.
+        // 이 예시에서는 JSON 응답을 {'x': 100, 'y': 200} 형태로 가정합니다.
+        _robotCurrentLocation = Offset(response.data['x'], response.data['y']);
+      });
+    } catch (e) {
+      print("로봇 현재 위치 불러오기 실패 : $e");
+    }
   }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -150,27 +169,28 @@ class _HomeState extends State<Home> {
           _imageBytes.length != 0
               ? Positioned.fill(
                   child: moving
+                      // 움직이고 있을 땐, 포인트 안찍히도록!
                       ? Container(
                           decoration: BoxDecoration(
                               image: DecorationImage(
                                   image: MemoryImage(_imageBytes),
                                   fit: BoxFit.fill)),
                           child: CustomPaint(
-                            painter: TouchPainter(
-                                destitionPoint: _destitionPoint, dio: dio),
+                            painter: TouchPainter(destination: _destination),
                             size: Size.infinite,
                           ),
                         )
+                      // 안움직이고 있을 땐, 포인트 찍히도록!
                       : GestureDetector(
                           onTapDown: (TapDownDetails details) {
                             setState(() {
                               // 터치된 위치를 화면의 좌표로 변환하여 바뀜
                               RenderBox referenceBox =
                                   context.findRenderObject() as RenderBox;
-                              _destitionPoint = referenceBox
+                              _destination = referenceBox
                                   .globalToLocal(details.globalPosition);
-                              _destitionPoint = Offset(_destitionPoint!.dx,
-                                  _destitionPoint!.dy - 115);
+                              _destination = Offset(
+                                  _destination!.dx, _destination!.dy - 115);
                               buttonState = true;
                             });
                           },
@@ -181,7 +201,8 @@ class _HomeState extends State<Home> {
                                     fit: BoxFit.fill)),
                             child: CustomPaint(
                               painter: TouchPainter(
-                                  destitionPoint: _destitionPoint, dio: dio),
+                                  destination: _destination,
+                                  robotLocation: _robotCurrentLocation),
                               size: Size.infinite,
                             ),
                           ),
@@ -242,28 +263,46 @@ class _HomeState extends State<Home> {
 }
 
 class TouchPainter extends CustomPainter {
-  final Offset? destitionPoint;
-  late Dio dio;
+  final Offset? destination;
+  final Offset? robotLocation;
+  // late Dio dio;
 
-  TouchPainter({this.destitionPoint, required this.dio});
+  TouchPainter(
+      {this.destination,
+      this.robotLocation}); // robotLocation은 required로 바꿔야한다!
 
   @override
   void paint(Canvas canvas, Size size) {
-    final Paint paint = Paint()
+    final Paint destinationPaint = Paint()
       ..color = Colors.green
       ..strokeCap = StrokeCap.round
       ..strokeWidth = 15.0;
 
-    if (destitionPoint != null) {
-      canvas.drawPoints(PointMode.points, [destitionPoint!], paint);
-      print(destitionPoint!.dx.toInt().toString() +
+    final Paint robotLocationPaint = Paint()
+      ..color = Colors.red
+      ..strokeCap = StrokeCap.square
+      ..strokeWidth = 15.0;
+
+    if (destination != null) {
+      canvas.drawPoints(PointMode.points, [destination!], destinationPaint);
+      print("목적지 좌표 : " +
+          destination!.dx.toInt().toString() +
           "," +
-          destitionPoint!.dy.toInt().toString());
+          destination!.dy.toInt().toString());
+    }
+
+    if (robotLocation != null) {
+      canvas.drawPoints(PointMode.points, [robotLocation!], robotLocationPaint);
+      print("로봇 위치 : " +
+          robotLocation!.dx.toInt().toString() +
+          "," +
+          robotLocation!.dy.toInt().toString());
     }
   }
 
   @override
   bool shouldRepaint(TouchPainter oldDelegate) {
-    return oldDelegate.destitionPoint != destitionPoint;
+    return oldDelegate.destination != destination ||
+        oldDelegate.robotLocation != robotLocation;
   }
 }
