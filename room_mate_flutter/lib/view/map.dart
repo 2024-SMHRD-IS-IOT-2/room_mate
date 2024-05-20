@@ -4,6 +4,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 class Home extends StatefulWidget {
@@ -30,30 +31,16 @@ class _HomeState extends State<Home> {
     getImage();
     Timer.periodic(Duration(milliseconds: 500), (timer) {
       fetchCoordinate();
+      if (_robotCurrentLocation != null && _destination != null) {
+        print("현재 로봇 위치 :" + _robotCurrentLocation!.dx.toString());
+        print("목적지!!" + _destination.toString());
+        if (_robotCurrentLocation == _destination) {
+          print("*************************************************도착!!");
+          _destination = null;
+          myDialog(context);
+        }
+      }
     });
-
-    // robot에서 지도데이터 받음
-    // await dio.post('http://121.147.52.9:8016/to_flutter_map_data');
-
-    // robot에서 robot의 실시간 위치 데이터 받음
-    // Timer.periodic(const Duration(seconds: 1), (timer) async {
-    //   await dio.post('http://121.147.52.9:8016/to_flutter_robot_location');
-    // });
-  }
-
-  void initialization() async {
-    // This is where you can initialize the resources needed by your app while
-    // the splash screen is displayed.  Remove the following example because
-    // delaying the user experience is a bad design practice!
-    // ignore_for_file: avoid_print
-    // print('ready in 3...');
-    // await Future.delayed(const Duration(seconds: 1));
-    // print('ready in 2...');
-    // await Future.delayed(const Duration(seconds: 1));
-    // print('ready in 1...');
-    // await Future.delayed(const Duration(seconds: 1));
-    // print('go!');
-    // FlutterNativeSplash.remove();
   }
 
   Future<void> getImage() async {
@@ -127,17 +114,51 @@ class _HomeState extends State<Home> {
 
   Future<void> fetchCoordinate() async {
     try {
-      // Dio를 사용하여 서버에서 좌표를 가져옵니다. 서버 URL은 적절하게 변경해야 합니다.
       var response =
           await dio.post('http://121.147.52.9:8016/to_flutter_robot_location');
       setState(() {
-        // 서버 응답에서 좌표를 파싱하여 currentLocation을 업데이트합니다.
-        // 이 예시에서는 JSON 응답을 {'x': 100, 'y': 200} 형태로 가정합니다.
         _robotCurrentLocation = Offset(response.data['x'], response.data['y']);
+        print("로봇값 넣은거" + _robotCurrentLocation.toString());
       });
     } catch (e) {
       print("로봇 현재 위치 불러오기 실패 : $e");
     }
+  }
+
+  void myDialog(context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(0)),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(height: 15),
+              Image.asset(
+                'imgs/splash_image.png',
+                // height: 100,
+              ),
+              const Text(
+                "룸메이트가 도착지에 도착했습니다!",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text(
+                    '확인',
+                    style: TextStyle(
+                        color: const Color.fromARGB(255, 13, 95, 189)),
+                  ))
+            ],
+          ),
+        );
+      },
+    );
   }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -176,7 +197,9 @@ class _HomeState extends State<Home> {
                                   image: MemoryImage(_imageBytes),
                                   fit: BoxFit.fill)),
                           child: CustomPaint(
-                            painter: TouchPainter(destination: _destination),
+                            painter: TouchPainter(
+                                destination: _destination,
+                                robotLocation: _robotCurrentLocation),
                             size: Size.infinite,
                           ),
                         )
@@ -190,7 +213,8 @@ class _HomeState extends State<Home> {
                               _destination = referenceBox
                                   .globalToLocal(details.globalPosition);
                               _destination = Offset(
-                                  _destination!.dx, _destination!.dy - 115);
+                                  _destination!.dx.toInt().toDouble(),
+                                  _destination!.dy.toInt().toDouble() - 115);
                               buttonState = true;
                             });
                           },
@@ -263,8 +287,8 @@ class _HomeState extends State<Home> {
 }
 
 class TouchPainter extends CustomPainter {
-  final Offset? destination;
-  final Offset? robotLocation;
+  Offset? destination;
+  Offset? robotLocation;
   // late Dio dio;
 
   TouchPainter(
@@ -283,14 +307,20 @@ class TouchPainter extends CustomPainter {
       ..strokeCap = StrokeCap.square
       ..strokeWidth = 15.0;
 
+    // double destinationX = destination!.dx.toInt().toDouble();
+    // double destinationY = destination!.dy.toInt().toDouble();
+    // destination = Offset(destinationX, destinationY);
     if (destination != null) {
       canvas.drawPoints(PointMode.points, [destination!], destinationPaint);
       print("목적지 좌표 : " +
-          destination!.dx.toInt().toString() +
+          destination!.dx.toString() +
           "," +
-          destination!.dy.toInt().toString());
+          destination!.dy.toString());
     }
 
+    // double x = robotLocation!.dx.toInt().toDouble();
+    // double y = robotLocation!.dy.toInt().toDouble();
+    // robotLocation = Offset(x, y);
     if (robotLocation != null) {
       canvas.drawPoints(PointMode.points, [robotLocation!], robotLocationPaint);
       print("로봇 위치 : " +
