@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui';
@@ -129,9 +131,19 @@ class _HomeState extends State<Home> {
           // double tempRobotX = _robotCurrentLocation!.dx.toInt().toDouble();
           // double tempRobotY = _robotCurrentLocation!.dy.toInt().toDouble();
           // _robotCurrentLocation = Offset(tempRobotX, tempRobotY);
-          print("현재 로봇 위치 :" + TouchPainter().robotLocation.toString());
-          print("목적지!!" + _destination.toString());
-          if (TouchPainter().robotLocation == _destination) {
+          double robotLocationX =
+              mapValue(_robotCurrentLocation!.dy, -0.5, 3, 0, 611);
+          double robotLocationY =
+              mapValue(_robotCurrentLocation!.dx, -0.3, 1.4, 0, 310);
+          _robotCurrentLocation = Offset(robotLocationX.toInt().toDouble(),
+              robotLocationY.toInt().toDouble());
+          print("현재 로봇 위치 : " + _robotCurrentLocation!.toString());
+
+          print("목적지!!" + _destination!.toString());
+          if (_robotCurrentLocation!.dx.toInt() - 40 <=
+                  _destination!.dx.toInt() &&
+              _destination!.dx.toInt() <=
+                  _robotCurrentLocation!.dx.toInt() + 40) {
             print("*************************************************도착!!");
             myDialog(context);
             _destination = null;
@@ -356,13 +368,12 @@ class TouchPainter extends CustomPainter {
     // double y = robotLocation!.dy.toInt().toDouble();
     // robotLocation = Offset(x, y);
     if (robotLocation != null) {
-      robotLocationX = mapValue(robotLocation!.dy, -0.5, 3, 0, 450);
-      robotLocationY = mapValue(robotLocation!.dx, -0.3, 1.4, 0, 310);
-      robotLocation = Offset(robotLocationX!.toInt().toDouble(),
-          robotLocationY!.toInt().toDouble());
+      // robotLocationX = mapValue(robotLocation!.dy, -0.5, 3, 0, 611);
+      // robotLocationY = mapValue(robotLocation!.dx, -0.3, 1.4, 0, 310);
+      // robotLocation = Offset(robotLocationX!.toInt().toDouble(),
+      //     robotLocationY!.toInt().toDouble());
 
-      canvas.drawPoints(PointMode.points,
-          [Offset(robotLocationX!, robotLocationY!)], robotLocationPaint);
+      canvas.drawPoints(PointMode.points, [robotLocation!], robotLocationPaint);
       print("로봇 위치 : " +
           robotLocation!.dx.toString() +
           "," +
