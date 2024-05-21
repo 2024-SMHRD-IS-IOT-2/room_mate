@@ -4,8 +4,6 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/widgets.dart';
-import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 class Home extends StatefulWidget {
   const Home({Key? key}) : super(key: key);
@@ -22,6 +20,7 @@ class _HomeState extends State<Home> {
   Offset? _robotCurrentLocation; // 로봇 실시간 위치
   Offset homedestination = Offset(100.0, 50.0); // 집 좌표
   bool buttonState = false; // true일 때 cancel icon과 이동중~ text가 나옴
+  String serverUrl = "http://121.147.52.9:8016";
 
   @override
   void initState() {
@@ -29,28 +28,18 @@ class _HomeState extends State<Home> {
     super.initState();
     // initialization();
     getImage();
-    Timer.periodic(Duration(milliseconds: 500), (timer) {
+    Timer.periodic(Duration(seconds: 3), (timer) {
       fetchCoordinate();
-      if (_robotCurrentLocation != null && _destination != null) {
-        print("현재 로봇 위치 :" + _robotCurrentLocation!.dx.toString());
-        print("목적지!!" + _destination.toString());
-        if (_robotCurrentLocation == _destination) {
-          print("*************************************************도착!!");
-          _destination = null;
-          myDialog(context);
-        }
-      }
     });
   }
 
   Future<void> getImage() async {
     try {
       // Dio를 사용하여 이미지를 가져옴
-      print("이미지 가져오기 전");
-      Response response = await dio.get(
-          'http://121.147.52.9:8016/to_flutter_map_data',
+      // print("이미지 가져오기 전");
+      Response response = await dio.get('$serverUrl/to_flutter_map_data',
           options: Options(responseType: ResponseType.bytes));
-      print('이미지 가져오기 성공!');
+      // print('이미지 가져오기 성공!');
 
       // 가져온 이미지를 화면에 표시
       setState(() {
@@ -65,13 +54,14 @@ class _HomeState extends State<Home> {
   // flask로 목적지 좌표 보내는 코드 작성
   void sendDestination() async {
     try {
-      final response = await dio.post('http://121.147.52.9:8016/destination',
-          data: {
-            'signal': true,
-            'x': _destination!.dx.toInt(),
-            'y': _destination!.dy.toInt()
-          });
-      print("좌표값 보냄!!" + response.data.toString());
+      // final response = await dio.post('$serverUrl/destination',
+      //     data: {'signal': true, 'x': 0.0, 'y': 0.0});
+      final response = await dio.post('$serverUrl/destination', data: {
+        'signal': true,
+        'x': mapValue(_destination!.dy.toDouble(), 0, 590, -0.5, 3),
+        'y': mapValue(_destination!.dx.toDouble(), 0, 390, -0.3, 1.4)
+      });
+      print("************************좌표값 보냄!!" + response.data.toString());
       setState(() {
         moving = true;
       });
@@ -82,30 +72,42 @@ class _HomeState extends State<Home> {
 
   // 집을 가는 코드 작성
   void goToHome() async {
-    _destination = Offset(190, 550);
-    print(_destination);
     try {
-      final response = await dio.post('http://121.147.52.9:8016/go_to_home',
-          data: {
-            'signal': true,
-            'x': _destination!.dx.toInt(),
-            'y': _destination!.dy.toInt()
-          });
-      print(response.data.toString());
+      // final response = await dio.post('$serverUrl/destination',
+      //     data: {'signal': true, 'x': 0.0, 'y': 0.0});
+      final response = await dio.post('$serverUrl/destination',
+          data: {'signal': true, 'x': 0.0, 'y': 0.0});
+      print("************************집으로 보냄!!" + response.data.toString());
       setState(() {
-        moving = true; // 이동중임을 표시
+        moving = true;
         buttonState = true;
-        _destination = null; // 버튼을 누를 때 좌표 초기화
       });
     } catch (e) {
-      print("집 좌표 보내기 실패 : " + e.toString());
+      print('좌표값 보내기 실패 ㅠㅠ');
     }
   }
+
+  // void goToHome() async {
+  //   _destination = Offset(190, 550);
+  //   print(_destination);
+  //   try {
+  //     final response = await dio.post('$serverUrl/go_to_home',
+  //         data: {'signal': true, 'x': 0.0, 'y': 0.0});
+  //     print(response.data.toString());
+  //     setState(() {
+  //       moving = true; // 이동중임을 표시
+  //       buttonState = true;
+  //       _destination = null; // 버튼을 누를 때 좌표 초기화
+  //     });
+  //   } catch (e) {
+  //     print("집 좌표 보내기 실패 : " + e.toString());
+  //   }
+  // }
 
   // 이동 중 멈추고 싶을 때 누르면 멈추는 코드 작성
   void cancelsendDestination() {
     _destination = null;
-    dio.post('http://121.147.52.9:8016/stop', data: {'stop_signal': 'stop'});
+    dio.post('$serverUrl/stop', data: {'stop_signal': 'stop'});
     setState(() {
       moving = false;
       buttonState = false;
@@ -114,12 +116,31 @@ class _HomeState extends State<Home> {
 
   Future<void> fetchCoordinate() async {
     try {
-      var response =
-          await dio.post('http://121.147.52.9:8016/to_flutter_robot_location');
-      setState(() {
-        _robotCurrentLocation = Offset(response.data['x'], response.data['y']);
-        print("로봇값 넣은거" + _robotCurrentLocation.toString());
-      });
+      var response = await dio.post('$serverUrl/to_flutter_robot_location');
+      if (response.data != null) {
+        response.data['x'] = response.data['x'].toDouble();
+        response.data['y'] = response.data['y'].toDouble();
+        setState(() {
+          _robotCurrentLocation =
+              Offset(response.data['x'], response.data['y']);
+          // print("로봇값 넣은거" + _robotCurrentLocation.toString());
+        });
+        if (_robotCurrentLocation != null || _destination != null) {
+          // double tempRobotX = _robotCurrentLocation!.dx.toInt().toDouble();
+          // double tempRobotY = _robotCurrentLocation!.dy.toInt().toDouble();
+          // _robotCurrentLocation = Offset(tempRobotX, tempRobotY);
+          print("현재 로봇 위치 :" + TouchPainter().robotLocation.toString());
+          print("목적지!!" + _destination.toString());
+          if (TouchPainter().robotLocation == _destination) {
+            print("*************************************************도착!!");
+            myDialog(context);
+            _destination = null;
+            moving = false;
+          }
+        }
+      } else {
+        print("로봇값 null");
+      }
     } catch (e) {
       print("로봇 현재 위치 불러오기 실패 : $e");
     }
@@ -159,6 +180,12 @@ class _HomeState extends State<Home> {
         );
       },
     );
+  }
+
+// 지도 좌표 범위 바꿔주는 함수!
+  double mapValue(
+      double value, double start1, double stop1, double start2, double stop2) {
+    return start2 + (stop2 - start2) * ((value - start1) / (stop1 - start1));
   }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -232,7 +259,8 @@ class _HomeState extends State<Home> {
                           ),
                         ),
                 )
-              : CircularProgressIndicator(), // 이미지 로딩 중에는 로딩 스피너를 표시,
+              : Center(
+                  child: CircularProgressIndicator()), // 이미지 로딩 중에는 로딩 스피너를 표시,
 
           // 각종 버튼들
           Positioned(
@@ -290,6 +318,8 @@ class TouchPainter extends CustomPainter {
   Offset? destination;
   Offset? robotLocation;
   // late Dio dio;
+  double? robotLocationX;
+  double? robotLocationY;
 
   TouchPainter(
       {this.destination,
@@ -307,26 +337,36 @@ class TouchPainter extends CustomPainter {
       ..strokeCap = StrokeCap.square
       ..strokeWidth = 15.0;
 
-    // double destinationX = destination!.dx.toInt().toDouble();
-    // double destinationY = destination!.dy.toInt().toDouble();
-    // destination = Offset(destinationX, destinationY);
+    double mapValue(double value, double start1, double stop1, double start2,
+        double stop2) {
+      return start2 + (stop2 - start2) * ((value - start1) / (stop1 - start1));
+    }
+
     if (destination != null) {
+      double destinationX = destination!.dx.toInt().toDouble();
+      double destinationY = destination!.dy.toInt().toDouble();
+      destination = Offset(destinationX, destinationY);
       canvas.drawPoints(PointMode.points, [destination!], destinationPaint);
       print("목적지 좌표 : " +
           destination!.dx.toString() +
           "," +
           destination!.dy.toString());
     }
-
     // double x = robotLocation!.dx.toInt().toDouble();
     // double y = robotLocation!.dy.toInt().toDouble();
     // robotLocation = Offset(x, y);
     if (robotLocation != null) {
-      canvas.drawPoints(PointMode.points, [robotLocation!], robotLocationPaint);
+      robotLocationX = mapValue(robotLocation!.dy, -0.5, 3, 0, 450);
+      robotLocationY = mapValue(robotLocation!.dx, -0.3, 1.4, 0, 310);
+      robotLocation = Offset(robotLocationX!.toInt().toDouble(),
+          robotLocationY!.toInt().toDouble());
+
+      canvas.drawPoints(PointMode.points,
+          [Offset(robotLocationX!, robotLocationY!)], robotLocationPaint);
       print("로봇 위치 : " +
-          robotLocation!.dx.toInt().toString() +
+          robotLocation!.dx.toString() +
           "," +
-          robotLocation!.dy.toInt().toString());
+          robotLocation!.dy.toString());
     }
   }
 

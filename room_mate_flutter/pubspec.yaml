@@ -197,6 +197,7 @@ flutter_native_splash:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
 
+flutter_lints: ^3.0.0
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
