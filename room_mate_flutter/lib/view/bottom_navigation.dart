@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:room_mate/view/gallery.dart';
 import 'package:room_mate/view/gesture.dart';
 import 'package:room_mate/view/map.dart';

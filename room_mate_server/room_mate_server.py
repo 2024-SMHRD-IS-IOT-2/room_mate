@@ -6,15 +6,22 @@ import os
 
 app = Flask(__name__)
 
+<<<<<<< HEAD
 map_data = 'C:/Users/smhrd/Desktop/room_mate_server/map.jpg' # 맵핑된 데이터
+=======
+map_data = 'C:/Users/choihongcheol/Desktop/room_mate_total/room_mate_server/map.jpg' # 맵핑된 데이터
+>>>>>>> 178ced200bad6300a910552463d2c93abb07ec3e
 robot_location = None # 실시간 로봇 데이터
 destination = None # app에서 찍은 위치 데이터
 stop_moving = None # 멈춤 신호
 coordinate = None # 목적지 좌표값
+<<<<<<< HEAD
 gesture = None
 person = None
 signal_value = False
 cancel_signal = False
+=======
+>>>>>>> 178ced200bad6300a910552463d2c93abb07ec3e
 load_dotenv() # .env 파일을 로드하라
 
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
@@ -37,7 +44,11 @@ def map_data():
 # robot에서 받은 지도를 app에 보냄(server -> app)
 @app.route('/to_flutter_map_data', methods=['GET'])
 def to_flutter_map_data():
+<<<<<<< HEAD
     map_data = 'C:/Users/smhrd/Desktop/room_mate_server/map.jpg' # robot에서 받은 데이터
+=======
+    map_data = 'C:/Users/smhrd/Desktop/final_project/map.jpg' # robot에서 받은 데이터
+>>>>>>> 178ced200bad6300a910552463d2c93abb07ec3e
     if map_data:
         return send_file(map_data, mimetype='image/jpg')
     else:
@@ -68,19 +79,30 @@ def to_flutter_robot_location():
 # app에서 로봇위치 찍으면 그 좌표값을 robot에 보냄(app -> server)
 @app.route('/destination', methods=['POST'])
 def destination():
+<<<<<<< HEAD
     global destination, signal_value
     data = request.json
     destination = data
     signal_value = True
+=======
+    global destination
+    data = request.json
+    destination = data
+>>>>>>> 178ced200bad6300a910552463d2c93abb07ec3e
     print("목적지 :", destination)
     return f'destination received successfully ${destination}'
 
 # app에서 로봇위치 찍으면 그 좌표값을 robot에 보냄(server -> robot)
 @app.route('/to_robot_destination', methods=['POST'])
 def to_robot_destination():
+<<<<<<< HEAD
     global destination, signal_value
     if signal_value:
         signal_value = False
+=======
+    global destination
+    if destination:
+>>>>>>> 178ced200bad6300a910552463d2c93abb07ec3e
         return jsonify(destination)
     else:
         return 'No data available(destination)'
@@ -109,22 +131,36 @@ def toRobotGoToHome():
 # 주행 중, app에서 stop신호 보냄(app -> server)
 @app.route('/stop', methods=['POST'])
 def stop():
+<<<<<<< HEAD
     global stop_moving, cancel_signal
     data = request.json
     stop_moving = data
     cancel_signal = True
+=======
+    global stop_moving
+    data = request.json
+    stop_moving = data
+>>>>>>> 178ced200bad6300a910552463d2c93abb07ec3e
     print('멈춰!', stop_moving['stop_signal'])
     return f'Stop!! ${stop_moving}'
 
 # 주행 중, app에서 stop신호 보냄(server -> robot)
 @app.route('/to_robot_stop', methods=['POST'])
 def to_robot_stop():
+<<<<<<< HEAD
     global cancel_signal
     if cancel_signal:
         cancel_signal = False
         return jsonify({'cancel_signal' : True})
     else:
         return jsonify({'cancel_signal' : False})
+=======
+    global stop_moving
+    if stop_moving:
+        return jsonify(stop_moving)
+    else:
+        return 'No data available(stop_moving)'
+>>>>>>> 178ced200bad6300a910552463d2c93abb07ec3e
 ######################################################################
 ######################################################################
 ######################################################################
@@ -205,6 +241,7 @@ def deletePhotos():
 ######################################################################
 ######################################################################
 ######################################################################
+<<<<<<< HEAD
 # gesture 인식(app -> server)
 @app.route('/gesture', methods = ['POST'])
 def gesture():
@@ -250,3 +287,8 @@ def to_robot_person():
 
 if __name__ == '__main__':
     app.run(host='121.147.52.9', port=8016)
+=======
+
+if __name__ == '__main__':
+    app.run(host='192.168.70.48', port=8016)
+>>>>>>> 178ced200bad6300a910552463d2c93abb07ec3e
