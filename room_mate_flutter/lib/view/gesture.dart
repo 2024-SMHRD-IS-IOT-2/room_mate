@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
@@ -17,23 +19,34 @@ class _GestureState extends State<Gesture> {
   checkedGesture() async {
     try {
       if (gestureCheck) {
+        // "Gesture 모드 카메라를 끄겠다"는 신호
         Response response =
-            await dio.post('$serverUrl/gesture', data: {'signal': false});
-            print(response.data);
+            await dio.post('$serverUrl/receive_bool', data: {'signal': false});
+        print(response.data.toString());
+        sleep(Duration(seconds: 2));
+
+        // "기존 카메라 켜겠다"는 신호
+        // await dio.post('$serverUrl/receive_bool', data: {'signal': false});
+
         setState(() {
           gestureCheck = false;
         });
       } else {
+        // "기존 카메라를 끄겠다"는 신호
+        // await dio.post('$serverUrl/receive_bool', data: {'signal': false});
+        // sleep(Duration(seconds: 2));
+
+        // "Gesture 모드 카메라를 켜겠다"는 신호
         Response response =
-            await dio.post('$serverUrl/gesture', data: {'signal': true});
-        print("+++++++++++++++++++++++++++++" + response.data);
+            await dio.post('$serverUrl/receive_bool', data: {'signal': true});
+        print("+++++++++++++++++++++++++++++" + response.data.toString());
         setState(() {
           gestureCheck = true;
           personCheck = false;
         });
       }
     } catch (e) {
-      print('********************' + e.toString());
+      print('*******zz***********zz**' + e.toString());
     }
   }
 
