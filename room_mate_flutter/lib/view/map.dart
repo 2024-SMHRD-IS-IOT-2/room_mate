@@ -143,7 +143,11 @@ class _HomeState extends State<Home> {
           if (_robotCurrentLocation!.dx.toInt() - 40 <=
                   _destination!.dx.toInt() &&
               _destination!.dx.toInt() <=
-                  _robotCurrentLocation!.dx.toInt() + 40) {
+                  _robotCurrentLocation!.dy.toInt() + 40 &&
+              _robotCurrentLocation!.dy.toInt() - 40 <=
+                  _destination!.dy.toInt() &&
+              _destination!.dy.toInt() <=
+                  _robotCurrentLocation!.dy.toInt() + 40) {
             print("*************************************************도착!!");
             myDialog(context);
             _destination = null;
@@ -164,6 +168,7 @@ class _HomeState extends State<Home> {
       barrierDismissible: false,
       builder: (context) {
         return Dialog(
+          backgroundColor: Color.fromARGB(255, 0, 173, 235),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(0)),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -171,21 +176,24 @@ class _HomeState extends State<Home> {
             children: [
               SizedBox(height: 15),
               Image.asset(
-                'imgs/splash_image.png',
+                'imgs/goal_popup.png',
                 // height: 100,
               ),
               const Text(
                 "룸메이트가 도착지에 도착했습니다!",
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style:
+                    TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
               ),
               TextButton(
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
                   child: Text(
-                    '확인',
+                    '확 인',
                     style: TextStyle(
-                        color: const Color.fromARGB(255, 13, 95, 189)),
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20),
                   ))
             ],
           ),
