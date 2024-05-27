@@ -42,7 +42,7 @@ class _BottomNavigationState extends State<BottomNavigation> {
           ),
           NavigationDestination(
             icon: Icon(Icons.gesture),
-            label: 'Gallery',
+            label: 'Gesture',
           ),
         ],
       ),

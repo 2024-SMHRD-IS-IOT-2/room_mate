@@ -27,6 +27,7 @@ class _HomeState extends State<Home> {
   Offset homedestination = Offset(100.0, 50.0); // 집 좌표
   bool buttonState = false; // true일 때 cancel icon과 이동중~ text가 나옴
   String serverUrl = "http://121.147.52.9:8016";
+  bool homePoint = false;
 
   @override
   void initState() {
@@ -34,13 +35,6 @@ class _HomeState extends State<Home> {
     super.initState();
     // initialization();
     getImage();
-    // ticker = createTicker()
-
-    // 시작하면 로봇 위치 뜨도록!!
-    // setState(() {
-    //   CurrentLocation(destination: _destination, robotCurrentLocation: _robotCurrentLocation);
-    // });
-
     Timer.periodic(Duration(seconds: 2), (timer) {
       fetchCoordinate();
     });
@@ -71,8 +65,8 @@ class _HomeState extends State<Home> {
       //     data: {'signal': true, 'x': 0.0, 'y': 0.0});
       final response = await dio.post('$serverUrl/destination', data: {
         'signal': true,
-        'x': mapValue(_destination!.dy.toDouble(), 0, 700,-0.6, 2.9),
-        'y': mapValue(_destination!.dx.toDouble(), 0, 400, -0.5, 1.2)
+        'x': mapValue(_destination!.dy.toDouble(), 0, 700,-0.6, 11.0),
+        'y': mapValue(_destination!.dx.toDouble(), 0, 400, -0.5, 8.0)
       });
       print("************************좌표값 보냄!!" + response.data.toString());
       setState(() {
@@ -89,11 +83,14 @@ class _HomeState extends State<Home> {
       // final response = await dio.post('$serverUrl/destination',
       //     data: {'signal': true, 'x': 0.0, 'y': 0.0});
       final response = await dio.post('$serverUrl/destination',
-          data: {'signal': true, 'x': 0.0, 'y': 0.0});
+          data: {'signal': true, 'x': 0.1, 'y': 0.0});
       print("************************집으로 보냄!!" + response.data.toString());
       setState(() {
+        // CurrentLocation(destination: Offset(0,0), robotCurrentLocation: _robotCurrentLocation);
+        // _destination = Offset(0,0);
         moving = true;
         buttonState = true;
+        homePoint = true;
       });
     } catch (e) {
       print('좌표값 보내기 실패 ㅠㅠ');
@@ -107,6 +104,7 @@ class _HomeState extends State<Home> {
     setState(() {
       moving = false;
       buttonState = false;
+      homePoint = false;
     });
   }
 
@@ -126,9 +124,9 @@ class _HomeState extends State<Home> {
             // double tempRobotY = _robotCurrentLocation!.dy.toInt().toDouble();
             // _robotCurrentLocation = Offset(tempRobotX, tempRobotY);
             double robotLocationX =
-            mapValue(_robotCurrentLocation!.dy, -0.6, 3.2, 0, 700);
+            mapValue(_robotCurrentLocation!.dy, -0.6, 13.5, 0, 700);
             double robotLocationY =
-            mapValue(_robotCurrentLocation!.dx, -0.5, 1.4, 0, 400);
+            mapValue(_robotCurrentLocation!.dx, -0.5, 5.8, 0, 400);
             _robotCurrentLocation = Offset(robotLocationX.toInt().toDouble(),
                 robotLocationY.toInt().toDouble());
             print("현재 로봇 위치 : " + _robotCurrentLocation!.toString());
@@ -143,8 +141,8 @@ class _HomeState extends State<Home> {
                     _destination!.dy.toInt() <=
                         _robotCurrentLocation!.dy.toInt() + 40)) {
               print("*************************************************도착!!");
-              myDialog(context);
               moving = false;
+              myDialog(context);
               _destination = null;
             }
           }
@@ -180,6 +178,7 @@ class _HomeState extends State<Home> {
               ),
               TextButton(
                   onPressed: () {
+                    homePoint = false;
                     Navigator.of(context).pop();
                   },
                   child: Text(
@@ -227,7 +226,9 @@ class _HomeState extends State<Home> {
                               image: DecorationImage(
                                   image: MemoryImage(_imageBytes),
                                   fit: BoxFit.fill)),
-                          child: CurrentLocation(destination: _destination, robotCurrentLocation: _robotCurrentLocation),
+                          child: CurrentLocation(destination: homePoint
+                              ? _destination=Offset(60,70)
+                              : _destination, robotCurrentLocation: _robotCurrentLocation),
                         )
                       // 안움직이고 있을 땐, 포인트 찍히도록!
                       : GestureDetector(
