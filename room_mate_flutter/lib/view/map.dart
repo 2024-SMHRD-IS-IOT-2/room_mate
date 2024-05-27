@@ -6,6 +6,10 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/scheduler.dart';
+
+import '../model/touch_paint.dart';
+import '../model/touch_painter.dart';
 
 class Home extends StatefulWidget {
   const Home({Key? key}) : super(key: key);
@@ -30,7 +34,14 @@ class _HomeState extends State<Home> {
     super.initState();
     // initialization();
     getImage();
-    Timer.periodic(Duration(seconds: 3), (timer) {
+    // ticker = createTicker()
+
+    // 시작하면 로봇 위치 뜨도록!!
+    // setState(() {
+    //   CurrentLocation(destination: _destination, robotCurrentLocation: _robotCurrentLocation);
+    // });
+
+    Timer.periodic(Duration(seconds: 2), (timer) {
       fetchCoordinate();
     });
   }
@@ -60,8 +71,8 @@ class _HomeState extends State<Home> {
       //     data: {'signal': true, 'x': 0.0, 'y': 0.0});
       final response = await dio.post('$serverUrl/destination', data: {
         'signal': true,
-        'x': mapValue(_destination!.dy.toDouble(), 0, 590, -0.5, 3),
-        'y': mapValue(_destination!.dx.toDouble(), 0, 390, -0.3, 1.4)
+        'x': mapValue(_destination!.dy.toDouble(), 0, 700, -0.6, 2.9),
+        'y': mapValue(_destination!.dx.toDouble(), 0, 400, -0.5, 1.2)
       });
       print("************************좌표값 보냄!!" + response.data.toString());
       setState(() {
@@ -89,23 +100,6 @@ class _HomeState extends State<Home> {
     }
   }
 
-  // void goToHome() async {
-  //   _destination = Offset(190, 550);
-  //   print(_destination);
-  //   try {
-  //     final response = await dio.post('$serverUrl/go_to_home',
-  //         data: {'signal': true, 'x': 0.0, 'y': 0.0});
-  //     print(response.data.toString());
-  //     setState(() {
-  //       moving = true; // 이동중임을 표시
-  //       buttonState = true;
-  //       _destination = null; // 버튼을 누를 때 좌표 초기화
-  //     });
-  //   } catch (e) {
-  //     print("집 좌표 보내기 실패 : " + e.toString());
-  //   }
-  // }
-
   // 이동 중 멈추고 싶을 때 누르면 멈추는 코드 작성
   void cancelsendDestination() {
     _destination = null;
@@ -122,37 +116,39 @@ class _HomeState extends State<Home> {
       if (response.data != null) {
         response.data['x'] = response.data['x'].toDouble();
         response.data['y'] = response.data['y'].toDouble();
-        setState(() {
-          _robotCurrentLocation =
-              Offset(response.data['x'], response.data['y']);
-          // print("로봇값 넣은거" + _robotCurrentLocation.toString());
-        });
-        if (_robotCurrentLocation != null || _destination != null) {
-          // double tempRobotX = _robotCurrentLocation!.dx.toInt().toDouble();
-          // double tempRobotY = _robotCurrentLocation!.dy.toInt().toDouble();
-          // _robotCurrentLocation = Offset(tempRobotX, tempRobotY);
-          double robotLocationX =
-              mapValue(_robotCurrentLocation!.dy, -0.5, 3, 0, 611);
-          double robotLocationY =
-              mapValue(_robotCurrentLocation!.dx, -0.3, 1.4, 0, 310);
-          _robotCurrentLocation = Offset(robotLocationX.toInt().toDouble(),
-              robotLocationY.toInt().toDouble());
-          print("현재 로봇 위치 : " + _robotCurrentLocation!.toString());
+        if (this.mounted) {
+          setState(() {
+            _robotCurrentLocation =
+                Offset(response.data['x'], response.data['y']);
+            // print("로봇값 넣은거" + _robotCurrentLocation.toString());
+            if (_robotCurrentLocation != null || _destination != null) {
+              // double tempRobotX = _robotCurrentLocation!.dx.toInt().toDouble();
+              // double tempRobotY = _robotCurrentLocation!.dy.toInt().toDouble();
+              // _robotCurrentLocation = Offset(tempRobotX, tempRobotY);
+              double robotLocationX =
+                  mapValue(_robotCurrentLocation!.dy, -0.6, 3.2, 0, 700);
+              double robotLocationY =
+                  mapValue(_robotCurrentLocation!.dx, -0.5, 1.4, 0, 400);
+              _robotCurrentLocation = Offset(robotLocationX.toInt().toDouble(),
+                  robotLocationY.toInt().toDouble());
+              print("현재 로봇 위치 : " + _robotCurrentLocation!.toString());
 
-          print("목적지!!" + _destination!.toString());
-          if (_robotCurrentLocation!.dx.toInt() - 40 <=
-                  _destination!.dx.toInt() &&
-              _destination!.dx.toInt() <=
-                  _robotCurrentLocation!.dy.toInt() + 40 &&
-              _robotCurrentLocation!.dy.toInt() - 40 <=
-                  _destination!.dy.toInt() &&
-              _destination!.dy.toInt() <=
-                  _robotCurrentLocation!.dy.toInt() + 40) {
-            print("*************************************************도착!!");
-            myDialog(context);
-            _destination = null;
-            moving = false;
-          }
+              print("목적지!!" + _destination!.toString());
+              if ((_robotCurrentLocation!.dx.toInt() - 40 <=
+                          _destination!.dx.toInt() &&
+                      _destination!.dx.toInt() <=
+                          _robotCurrentLocation!.dx.toInt() + 40) &&
+                  (_robotCurrentLocation!.dy.toInt() - 40 <=
+                          _destination!.dy.toInt() &&
+                      _destination!.dy.toInt() <=
+                          _robotCurrentLocation!.dy.toInt() + 40)) {
+                print("*************************************************도착!!");
+                myDialog(context);
+                moving = false;
+                _destination = null;
+              }
+            }
+          });
         }
       } else {
         print("로봇값 null");
@@ -213,22 +209,14 @@ class _HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(50.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            AppBar(
-              toolbarHeight: 50,
-              title: Text(
-                "Map",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 35),
-              ),
-              centerTitle: true,
-              backgroundColor: Colors.lightBlue[300],
-            ),
-          ],
+      appBar: AppBar(
+        // toolbarHeight: 50,
+        title: Text(
+          "Map",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 35),
         ),
+        centerTitle: true,
+        backgroundColor: Colors.lightBlue[300],
       ),
       body: Stack(
         // alignment: ,
@@ -243,12 +231,9 @@ class _HomeState extends State<Home> {
                               image: DecorationImage(
                                   image: MemoryImage(_imageBytes),
                                   fit: BoxFit.fill)),
-                          child: CustomPaint(
-                            painter: TouchPainter(
-                                destination: _destination,
-                                robotLocation: _robotCurrentLocation),
-                            size: Size.infinite,
-                          ),
+                          child: CurrentLocation(
+                              destination: _destination,
+                              robotCurrentLocation: _robotCurrentLocation),
                         )
                       // 안움직이고 있을 땐, 포인트 찍히도록!
                       : GestureDetector(
@@ -261,7 +246,7 @@ class _HomeState extends State<Home> {
                                   .globalToLocal(details.globalPosition);
                               _destination = Offset(
                                   _destination!.dx.toInt().toDouble(),
-                                  _destination!.dy.toInt().toDouble() - 115);
+                                  _destination!.dy.toInt().toDouble() - 90);
                               buttonState = true;
                             });
                           },
@@ -270,12 +255,9 @@ class _HomeState extends State<Home> {
                                 image: DecorationImage(
                                     image: MemoryImage(_imageBytes),
                                     fit: BoxFit.fill)),
-                            child: CustomPaint(
-                              painter: TouchPainter(
-                                  destination: _destination,
-                                  robotLocation: _robotCurrentLocation),
-                              size: Size.infinite,
-                            ),
+                            child: CurrentLocation(
+                                destination: _destination,
+                                robotCurrentLocation: _robotCurrentLocation),
                           ),
                         ),
                 )
@@ -331,67 +313,5 @@ class _HomeState extends State<Home> {
         ],
       ),
     );
-  }
-}
-
-class TouchPainter extends CustomPainter {
-  Offset? destination;
-  Offset? robotLocation;
-  // late Dio dio;
-  double? robotLocationX;
-  double? robotLocationY;
-
-  TouchPainter(
-      {this.destination,
-      this.robotLocation}); // robotLocation은 required로 바꿔야한다!
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final Paint destinationPaint = Paint()
-      ..color = Colors.green
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = 15.0;
-
-    final Paint robotLocationPaint = Paint()
-      ..color = Colors.red
-      ..strokeCap = StrokeCap.square
-      ..strokeWidth = 15.0;
-
-    double mapValue(double value, double start1, double stop1, double start2,
-        double stop2) {
-      return start2 + (stop2 - start2) * ((value - start1) / (stop1 - start1));
-    }
-
-    if (destination != null) {
-      double destinationX = destination!.dx.toInt().toDouble();
-      double destinationY = destination!.dy.toInt().toDouble();
-      destination = Offset(destinationX, destinationY);
-      canvas.drawPoints(PointMode.points, [destination!], destinationPaint);
-      print("목적지 좌표 : " +
-          destination!.dx.toString() +
-          "," +
-          destination!.dy.toString());
-    }
-    // double x = robotLocation!.dx.toInt().toDouble();
-    // double y = robotLocation!.dy.toInt().toDouble();
-    // robotLocation = Offset(x, y);
-    if (robotLocation != null) {
-      // robotLocationX = mapValue(robotLocation!.dy, -0.5, 3, 0, 611);
-      // robotLocationY = mapValue(robotLocation!.dx, -0.3, 1.4, 0, 310);
-      // robotLocation = Offset(robotLocationX!.toInt().toDouble(),
-      //     robotLocationY!.toInt().toDouble());
-
-      canvas.drawPoints(PointMode.points, [robotLocation!], robotLocationPaint);
-      print("로봇 위치 : " +
-          robotLocation!.dx.toString() +
-          "," +
-          robotLocation!.dy.toString());
-    }
-  }
-
-  @override
-  bool shouldRepaint(TouchPainter oldDelegate) {
-    return oldDelegate.destination != destination ||
-        oldDelegate.robotLocation != robotLocation;
   }
 }

@@ -83,22 +83,14 @@ class _GalleryState extends State<Gallery> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(50.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            AppBar(
-              toolbarHeight: 50,
-              title: Text(
-                "Gallery",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 35),
-              ),
-              centerTitle: true,
-              backgroundColor: Colors.lightBlue[300],
-            ),
-          ],
+      appBar: AppBar(
+        // toolbarHeight: 50,
+        title: Text(
+          "Gallery",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 35),
         ),
+        centerTitle: true,
+        backgroundColor: Colors.lightBlue[300],
       ),
       body: Container(
         key: key,

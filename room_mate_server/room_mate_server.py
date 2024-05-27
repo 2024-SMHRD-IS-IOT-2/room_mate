@@ -6,11 +6,15 @@ import os
 
 app = Flask(__name__)
 
-map_data = 'C:/Users/choihongcheol/Desktop/room_mate_total/room_mate_server/map.jpg' # 맵핑된 데이터
+map_data = 'C:/Users/smhrd/Desktop/room_mate_server/map.jpg' # 맵핑된 데이터
 robot_location = None # 실시간 로봇 데이터
 destination = None # app에서 찍은 위치 데이터
 stop_moving = None # 멈춤 신호
 coordinate = None # 목적지 좌표값
+gesture = None
+person = None
+signal_value = False
+cancel_signal = False
 load_dotenv() # .env 파일을 로드하라
 
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
@@ -33,7 +37,7 @@ def map_data():
 # robot에서 받은 지도를 app에 보냄(server -> app)
 @app.route('/to_flutter_map_data', methods=['GET'])
 def to_flutter_map_data():
-    map_data = 'C:/Users/smhrd/Desktop/final_project/map.jpg' # robot에서 받은 데이터
+    map_data = 'C:/Users/smhrd/Desktop/room_mate_server/map.jpg' # robot에서 받은 데이터
     if map_data:
         return send_file(map_data, mimetype='image/jpg')
     else:
@@ -64,17 +68,19 @@ def to_flutter_robot_location():
 # app에서 로봇위치 찍으면 그 좌표값을 robot에 보냄(app -> server)
 @app.route('/destination', methods=['POST'])
 def destination():
-    global destination
+    global destination, signal_value
     data = request.json
     destination = data
+    signal_value = True
     print("목적지 :", destination)
     return f'destination received successfully ${destination}'
 
 # app에서 로봇위치 찍으면 그 좌표값을 robot에 보냄(server -> robot)
 @app.route('/to_robot_destination', methods=['POST'])
 def to_robot_destination():
-    global destination
-    if destination:
+    global destination, signal_value
+    if signal_value:
+        signal_value = False
         return jsonify(destination)
     else:
         return 'No data available(destination)'
@@ -103,20 +109,22 @@ def toRobotGoToHome():
 # 주행 중, app에서 stop신호 보냄(app -> server)
 @app.route('/stop', methods=['POST'])
 def stop():
-    global stop_moving
+    global stop_moving, cancel_signal
     data = request.json
     stop_moving = data
+    cancel_signal = True
     print('멈춰!', stop_moving['stop_signal'])
     return f'Stop!! ${stop_moving}'
 
 # 주행 중, app에서 stop신호 보냄(server -> robot)
 @app.route('/to_robot_stop', methods=['POST'])
 def to_robot_stop():
-    global stop_moving
-    if stop_moving:
-        return jsonify(stop_moving)
+    global cancel_signal
+    if cancel_signal:
+        cancel_signal = False
+        return jsonify({'cancel_signal' : True})
     else:
-        return 'No data available(stop_moving)'
+        return jsonify({'cancel_signal' : False})
 ######################################################################
 ######################################################################
 ######################################################################
@@ -197,6 +205,48 @@ def deletePhotos():
 ######################################################################
 ######################################################################
 ######################################################################
+# gesture 인식(app -> server)
+@app.route('/gesture', methods = ['POST'])
+def gesture():
+    global gesture
+    data = request.json
+    gesture = data
+    print("목적지 :", gesture)
+    return f'destination received successfully ${gesture}'
+
+# gesture 인식(server -> robot)
+@app.route('/to_robot_gesture', methods=['POST'])
+def to_robot_gesture():
+    global gesture
+    if gesture:
+        return jsonify(gesture)
+    else:
+        return 'No data available(gesture)'
+
+######################################################################
+######################################################################
+######################################################################
+# person 인식(app -> server)
+@app.route('/person', methods = ['POST'])
+def person():
+    global person
+    data = request.json
+    person = data
+    print("목적지 :", person)
+    return f'destination received successfully ${person}'
+
+# person 인식(server -> robot)
+@app.route('/to_robot_person', methods=['POST'])
+def to_robot_person():
+    global person
+    if person:
+        return jsonify(person)
+    else:
+        return 'No data available(person)'
+
+######################################################################
+######################################################################
+######################################################################
 
 if __name__ == '__main__':
-    app.run(host='192.168.70.48', port=8016)
+    app.run(host='121.147.52.9', port=8016)

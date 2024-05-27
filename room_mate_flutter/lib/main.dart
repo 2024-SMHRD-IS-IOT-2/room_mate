@@ -7,13 +7,13 @@ void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   runApp(const MyApp());
-  print('ready in 3...');
+  print('3');
   await Future.delayed(const Duration(seconds: 1));
-  print('ready in 2...');
+  print('2');
   await Future.delayed(const Duration(seconds: 1));
-  print('ready in 1...');
+  print('1');
   await Future.delayed(const Duration(seconds: 1));
-  print('go!');
+  print('시작!!');
   FlutterNativeSplash.remove();
 }
 

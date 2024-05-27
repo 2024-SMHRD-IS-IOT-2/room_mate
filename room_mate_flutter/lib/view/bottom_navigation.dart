@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:room_mate/view/gallery.dart';
+import 'package:room_mate/view/gesture.dart';
 import 'package:room_mate/view/map.dart';
 
 /// Flutter code sample for [NavigationBar].
@@ -40,12 +40,18 @@ class _BottomNavigationState extends State<BottomNavigation> {
             icon: Icon(Icons.photo_album_outlined),
             label: 'Gallery',
           ),
+          NavigationDestination(
+            icon: Icon(Icons.gesture),
+            label: 'Gallery',
+          ),
         ],
       ),
       body: <Widget>[
         Home(), // 맵 페이지
 
         Gallery(), // 갤러리 페이지
+
+        Gesture()
       ][currentPageIndex],
     );
   }
