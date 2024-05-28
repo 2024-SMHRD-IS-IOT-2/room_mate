@@ -65,8 +65,8 @@ class _HomeState extends State<Home> {
       //     data: {'signal': true, 'x': 0.0, 'y': 0.0});
       final response = await dio.post('$serverUrl/destination', data: {
         'signal': true,
-        'x': mapValue(_destination!.dy.toDouble(), 0, 700,-0.6, 11.0),
-        'y': mapValue(_destination!.dx.toDouble(), 0, 400, -0.5, 8.0)
+        'x': mapValue(_destination!.dy.toDouble(), 0, 700, -0.6, 2.9),
+        'y': mapValue(_destination!.dx.toDouble(), 0, 400, -0.5, 1.2)
       });
       print("************************좌표값 보냄!!" + response.data.toString());
       setState(() {
@@ -114,39 +114,39 @@ class _HomeState extends State<Home> {
       if (response.data != null) {
         response.data['x'] = response.data['x'].toDouble();
         response.data['y'] = response.data['y'].toDouble();
-        if(this.mounted) {
+        if (this.mounted) {
           setState(() {
-          _robotCurrentLocation =
-              Offset(response.data['x'], response.data['y']);
-          // print("로봇값 넣은거" + _robotCurrentLocation.toString());
-          if (_robotCurrentLocation != null || _destination != null) {
-            // double tempRobotX = _robotCurrentLocation!.dx.toInt().toDouble();
-            // double tempRobotY = _robotCurrentLocation!.dy.toInt().toDouble();
-            // _robotCurrentLocation = Offset(tempRobotX, tempRobotY);
-            double robotLocationX =
-            mapValue(_robotCurrentLocation!.dy, -0.6, 13.5, 0, 700);
-            double robotLocationY =
-            mapValue(_robotCurrentLocation!.dx, -0.5, 5.8, 0, 400);
-            _robotCurrentLocation = Offset(robotLocationX.toInt().toDouble(),
-                robotLocationY.toInt().toDouble());
-            print("현재 로봇 위치 : " + _robotCurrentLocation!.toString());
+            _robotCurrentLocation =
+                Offset(response.data['x'], response.data['y']);
+            // print("로봇값 넣은거" + _robotCurrentLocation.toString());
+            if (_robotCurrentLocation != null || _destination != null) {
+              // double tempRobotX = _robotCurrentLocation!.dx.toInt().toDouble();
+              // double tempRobotY = _robotCurrentLocation!.dy.toInt().toDouble();
+              // _robotCurrentLocation = Offset(tempRobotX, tempRobotY);
+              double robotLocationX =
+                  mapValue(_robotCurrentLocation!.dy, -0.6, 3.2, 0, 700);
+              double robotLocationY =
+                  mapValue(_robotCurrentLocation!.dx, -0.5, 1.4, 0, 400);
+              _robotCurrentLocation = Offset(robotLocationX.toInt().toDouble(),
+                  robotLocationY.toInt().toDouble());
+              print("현재 로봇 위치 : " + _robotCurrentLocation!.toString());
 
-            print("목적지!!" + _destination!.toString());
-            if ((_robotCurrentLocation!.dx.toInt() - 40 <=
-                _destination!.dx.toInt() &&
-                _destination!.dx.toInt() <=
-                    _robotCurrentLocation!.dx.toInt() + 40) &&
-                (_robotCurrentLocation!.dy.toInt() - 40 <=
-                    _destination!.dy.toInt() &&
-                    _destination!.dy.toInt() <=
-                        _robotCurrentLocation!.dy.toInt() + 40)) {
-              print("*************************************************도착!!");
-              moving = false;
-              myDialog(context);
-              _destination = null;
+              print("목적지!!" + _destination!.toString());
+              if ((_robotCurrentLocation!.dx.toInt() - 40 <=
+                          _destination!.dx.toInt() &&
+                      _destination!.dx.toInt() <=
+                          _robotCurrentLocation!.dx.toInt() + 40) &&
+                  (_robotCurrentLocation!.dy.toInt() - 40 <=
+                          _destination!.dy.toInt() &&
+                      _destination!.dy.toInt() <=
+                          _robotCurrentLocation!.dy.toInt() + 40)) {
+                print("*************************************************도착!!");
+                myDialog(context);
+                moving = false;
+                _destination = null;
+              }
             }
-          }
-        });
+          });
         }
       } else {
         print("로봇값 null");
@@ -162,6 +162,7 @@ class _HomeState extends State<Home> {
       barrierDismissible: false,
       builder: (context) {
         return Dialog(
+          backgroundColor: Color.fromARGB(255, 0, 173, 235),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(0)),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -169,12 +170,13 @@ class _HomeState extends State<Home> {
             children: [
               SizedBox(height: 15),
               Image.asset(
-                'imgs/splash_image.png',
+                'imgs/goal_popup.png',
                 // height: 100,
               ),
               const Text(
                 "룸메이트가 도착지에 도착했습니다!",
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style:
+                    TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
               ),
               TextButton(
                   onPressed: () {
@@ -182,9 +184,11 @@ class _HomeState extends State<Home> {
                     Navigator.of(context).pop();
                   },
                   child: Text(
-                    '확인',
+                    '확 인',
                     style: TextStyle(
-                        color: const Color.fromARGB(255, 13, 95, 189)),
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20),
                   ))
             ],
           ),
@@ -250,7 +254,9 @@ class _HomeState extends State<Home> {
                                 image: DecorationImage(
                                     image: MemoryImage(_imageBytes),
                                     fit: BoxFit.fill)),
-                            child: CurrentLocation(destination: _destination, robotCurrentLocation: _robotCurrentLocation),
+                            child: CurrentLocation(
+                                destination: _destination,
+                                robotCurrentLocation: _robotCurrentLocation),
                           ),
                         ),
                 )
@@ -308,4 +314,3 @@ class _HomeState extends State<Home> {
     );
   }
 }
-
